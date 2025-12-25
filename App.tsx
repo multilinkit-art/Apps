@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { 
-  Sparkles, 
-  ArrowRight, 
-  History, 
-  PlusCircle, 
+import {
+  Sparkles,
+  ArrowRight,
+  History,
+  PlusCircle,
   Smartphone,
   Settings,
   AlertCircle,
@@ -17,11 +17,14 @@ import {
   Image as ImageIcon,
   RotateCcw,
   Upload,
-  Check
+  Check,
+  LogOut
 } from 'lucide-react';
 import { ShortenedLink, SmartSuggestion, LinkProvider } from './types';
 import { analyzeUrl } from './services/geminiService';
+import { authService, linksService, supabase } from './services/supabaseClient';
 import HistoryItem from './components/HistoryItem';
+import Auth from './components/Auth';
 
 const PROVIDERS: LinkProvider[] = [
   'short.gy',
@@ -48,14 +51,17 @@ const App: React.FC = () => {
   const [view, setView] = useState<'generate' | 'history'>('generate');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
-  
+  const [session, setSession] = useState<any>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Real-time URL Validation logic
   const urlValidation = useMemo(() => {
     if (!url) return { isValid: false, status: 'idle', message: '' };
-    
+
     try {
       const parsedUrl = new URL(url);
       const hasProtocol = url.startsWith('http://') || url.startsWith('https://');
@@ -68,12 +74,47 @@ const App: React.FC = () => {
     }
   }, [url]);
 
-  // Load history and logo on mount
+  // Check auth state on mount
   useEffect(() => {
-    const savedHistory = localStorage.getItem('shorten_history');
-    if (savedHistory) {
-      try { setHistory(JSON.parse(savedHistory)); } catch (e) { console.error(e); }
+    const checkAuth = async () => {
+      const currentSession = await authService.getCurrentSession();
+      setSession(currentSession);
+      setIsLoadingAuth(false);
+    };
+
+    checkAuth();
+
+    const { data: authListener } = authService.onAuthStateChange((event, newSession) => {
+      setSession(newSession);
+      if (newSession) {
+        loadLinksFromCloud(newSession.user.id);
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Load links from cloud when session exists
+  const loadLinksFromCloud = async (userId: string) => {
+    try {
+      setIsLoadingLinks(true);
+      const links = await linksService.getLinks(userId);
+      const formattedLinks = links.map((link: any) => ({
+        ...link,
+        createdAt: new Date(link.created_at).getTime()
+      }));
+      setHistory(formattedLinks);
+    } catch (err) {
+      console.error('Failed to load links:', err);
+    } finally {
+      setIsLoadingLinks(false);
     }
+  };
+
+  // Load logo on mount
+  useEffect(() => {
     const savedLogo = localStorage.getItem('shorten_custom_logo');
     if (savedLogo) {
       setCustomLogo(savedLogo);
@@ -84,11 +125,6 @@ const App: React.FC = () => {
       setDeferredPrompt(e);
     });
   }, []);
-
-  // Persist history
-  useEffect(() => {
-    localStorage.setItem('shorten_history', JSON.stringify(history));
-  }, [history]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -153,34 +189,84 @@ const App: React.FC = () => {
   };
 
   const handleShorten = async () => {
-    if (!urlValidation.isValid) return;
+    if (!urlValidation.isValid || !session) return;
     setIsShortening(true);
-    
+
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const finalAlias = customAlias || Math.random().toString(36).substring(2, 7);
-    const newLink: ShortenedLink = {
-      id: crypto.randomUUID(),
-      originalUrl: url,
-      shortUrl: `https://${provider}/${finalAlias}`,
-      alias: finalAlias,
-      summary: summary,
-      provider: provider,
-      createdAt: Date.now(),
-    };
 
-    setHistory(prev => [newLink, ...prev]);
-    setUrl('');
-    setCustomAlias('');
-    setSuggestions([]);
-    setSummary('');
-    setIsShortening(false);
-    setView('history');
+    try {
+      const dbLink = await linksService.createLink({
+        user_id: session.user.id,
+        original_url: url,
+        short_url: `https://${provider}/${finalAlias}`,
+        alias: finalAlias,
+        summary: summary,
+        provider: provider
+      });
+
+      const newLink: ShortenedLink = {
+        id: dbLink.id,
+        originalUrl: dbLink.original_url,
+        shortUrl: dbLink.short_url,
+        alias: dbLink.alias,
+        summary: dbLink.summary,
+        provider: dbLink.provider,
+        createdAt: new Date(dbLink.created_at).getTime(),
+      };
+
+      setHistory(prev => [newLink, ...prev]);
+      setUrl('');
+      setCustomAlias('');
+      setSuggestions([]);
+      setSummary('');
+      setView('history');
+    } catch (err) {
+      setError('Failed to save link. Please try again.');
+      console.error(err);
+    } finally {
+      setIsShortening(false);
+    }
   };
 
   const deleteLink = useCallback((id: string) => {
-    setHistory(prev => prev.filter(link => link.id !== id));
+    (async () => {
+      try {
+        await linksService.deleteLink(id);
+        setHistory(prev => prev.filter(link => link.id !== id));
+      } catch (err) {
+        console.error('Failed to delete link:', err);
+      }
+    })();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await authService.signOut();
+      setSession(null);
+      setHistory([]);
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
+  if (isLoadingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden font-sans border-x border-slate-900 pt-[env(safe-area-inset-top)]">
+        <div className="flex items-center justify-center flex-1">
+          <div className="text-center">
+            <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-400 text-sm">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth onAuthSuccess={() => {}} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden font-sans border-x border-slate-900 pt-[env(safe-area-inset-top)]">
@@ -221,12 +307,21 @@ const App: React.FC = () => {
               <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-1">Smart Link Hub</p>
             </div>
           </div>
-          <button 
-            onClick={() => setView(view === 'generate' ? 'history' : 'generate')}
-            className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-700 active:scale-90 transition-all border border-slate-700/50 shadow-inner"
-          >
-            {view === 'generate' ? <History size={20} /> : <PlusCircle size={20} />}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setView(view === 'generate' ? 'history' : 'generate')}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-700 active:scale-90 transition-all border border-slate-700/50 shadow-inner"
+            >
+              {view === 'generate' ? <History size={20} /> : <PlusCircle size={20} />}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-xl text-slate-400 hover:text-red-400 hover:bg-slate-700 active:scale-90 transition-all border border-slate-700/50 shadow-inner"
+              title="Logout"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -446,7 +541,7 @@ const App: React.FC = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-xl font-black text-white">Your History</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Managed locally</p>
+                <p className="text-[10px] text-emerald-600 font-bold uppercase mt-1">Cloud synced</p>
               </div>
               <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl shadow-inner">
                 <span className="text-xs font-black text-emerald-500">{history.length}</span>
