@@ -1,5 +1,5 @@
 {
-  "name": "Shorten",
+  "name": "Shortener",
   "short_name": "Shorten",
   "description": "Standalone smart link shortener with AI analysis for Android and iOS.",
   "requestFramePermissions": [
