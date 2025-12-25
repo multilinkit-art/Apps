@@ -1,0 +1,7 @@
+{
+  "name": "Shorten - Smart Link Manager",
+  "description": "A professional Android-styled link shortening application with multi-provider support and AI-driven alias suggestions.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
