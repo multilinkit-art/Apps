@@ -1,7 +1,13 @@
 {
-  "name": "Shorten - Smart Link Manager",
-  "description": "A professional Android-styled link shortening application with multi-provider support and AI-driven alias suggestions.",
+  "name": "Shorten",
+  "short_name": "Shorten",
+  "description": "Standalone smart link shortener with AI analysis for Android and iOS.",
   "requestFramePermissions": [
-    "camera"
-  ]
+    "camera",
+    "microphone"
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#10b981"
 }

@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Globe,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { ShortenedLink, SmartSuggestion, LinkProvider } from './types';
 import { analyzeUrl } from './services/geminiService';
@@ -42,8 +43,25 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<ShortenedLink[]>([]);
   const [error, setError] = useState('');
   const [view, setView] = useState<'generate' | 'history'>('generate');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle PWA installation prompt
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -129,13 +147,19 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden font-sans border-x border-slate-900">
-      {/* Android Status Bar */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden font-sans border-x border-slate-900 pt-[env(safe-area-inset-top)]">
+      {/* Android/iOS System Status Bar Spacing Mockup */}
       <div className="bg-slate-900/50 backdrop-blur-sm px-6 py-2 flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase tracking-tighter">
         <div className="flex gap-2">
           <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
         </div>
         <div className="flex items-center gap-2">
+          {deferredPrompt && (
+            <button onClick={handleInstallClick} className="flex items-center gap-1 text-emerald-500 animate-pulse">
+              <Download size={10} />
+              <span>INSTALL</span>
+            </button>
+          )}
           <Zap size={10} className="text-emerald-500 fill-emerald-500" />
           <Smartphone size={10} />
           <Settings size={10} />
@@ -211,7 +235,7 @@ const App: React.FC = () => {
               <div className="relative group">
                 <input
                   type="url"
-                  placeholder="https://example.com/very-long-path"
+                  placeholder="https://example.com/path"
                   value={url}
                   onChange={handleUrlChange}
                   className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-5 pr-14 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 transition-all text-sm font-medium"
@@ -242,7 +266,6 @@ const App: React.FC = () => {
                     <Sparkles size={16} className="text-emerald-400" />
                     <h2 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">AI Insights</h2>
                   </div>
-                  {isAnalyzing && <div className="text-[10px] text-emerald-500 animate-pulse font-bold">ANALYZING...</div>}
                 </div>
 
                 {isAnalyzing ? (
@@ -316,7 +339,7 @@ const App: React.FC = () => {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-xl font-black text-white">Your History</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Saved from your sessions</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Managed locally</p>
               </div>
               <div className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-2xl">
                 <span className="text-xs font-black text-emerald-500">{history.length}</span>
@@ -329,12 +352,11 @@ const App: React.FC = () => {
                   <History size={40} />
                 </div>
                 <h3 className="text-lg font-black text-slate-300">Nothing Here Yet</h3>
-                <p className="text-xs text-slate-500 font-medium mt-2 leading-relaxed">Your shortened links will appear here after you create them.</p>
                 <button 
                   onClick={() => setView('generate')}
-                  className="mt-8 text-emerald-500 text-xs font-black uppercase tracking-widest hover:text-emerald-400"
+                  className="mt-8 text-emerald-500 text-xs font-black uppercase tracking-widest"
                 >
-                  Create Your First Link
+                  Create First Link
                 </button>
               </div>
             ) : (
@@ -352,31 +374,31 @@ const App: React.FC = () => {
       {view === 'history' && history.length > 0 && (
         <button
           onClick={() => setView('generate')}
-          className="absolute bottom-24 right-6 w-14 h-14 bg-emerald-500 rounded-2xl shadow-2xl shadow-emerald-500/30 flex items-center justify-center text-slate-950 transform hover:scale-105 active:scale-90 transition-all z-30 ring-4 ring-slate-950"
+          className="absolute bottom-28 right-6 w-14 h-14 bg-emerald-500 rounded-2xl shadow-2xl shadow-emerald-500/30 flex items-center justify-center text-slate-950 transform hover:scale-105 active:scale-90 transition-all z-30 ring-4 ring-slate-950"
         >
           <PlusCircle size={28} strokeWidth={2.5} />
         </button>
       )}
 
-      {/* Android Tab Bar */}
-      <footer className="bg-slate-900/60 backdrop-blur-xl border-t border-slate-800/50 py-4 px-12 flex justify-between items-center z-20">
+      {/* Android/iOS Tab Bar with Safe Area Bottom Padding */}
+      <footer className="bg-slate-900/80 backdrop-blur-2xl border-t border-slate-800/50 px-12 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center z-20">
         <button 
           onClick={() => setView('generate')}
-          className={`flex flex-col items-center gap-1.5 transition-all ${view === 'generate' ? 'text-emerald-500 scale-110' : 'text-slate-600 hover:text-slate-400'}`}
+          className={`flex flex-col items-center gap-1.5 transition-all ${view === 'generate' ? 'text-emerald-500 scale-110' : 'text-slate-600'}`}
         >
           <div className={`p-1 rounded-lg ${view === 'generate' ? 'bg-emerald-500/10' : ''}`}>
-            <PlusCircle size={22} strokeWidth={view === 'generate' ? 2.5 : 2} />
+            <PlusCircle size={22} strokeWidth={2.5} />
           </div>
-          <span className="text-[9px] font-black uppercase tracking-tighter">CREATE</span>
+          <span className="text-[9px] font-black uppercase">CREATE</span>
         </button>
         <button 
           onClick={() => setView('history')}
-          className={`flex flex-col items-center gap-1.5 transition-all ${view === 'history' ? 'text-emerald-500 scale-110' : 'text-slate-600 hover:text-slate-400'}`}
+          className={`flex flex-col items-center gap-1.5 transition-all ${view === 'history' ? 'text-emerald-500 scale-110' : 'text-slate-600'}`}
         >
           <div className={`p-1 rounded-lg ${view === 'history' ? 'bg-emerald-500/10' : ''}`}>
-            <History size={22} strokeWidth={view === 'history' ? 2.5 : 2} />
+            <History size={22} strokeWidth={2.5} />
           </div>
-          <span className="text-[9px] font-black uppercase tracking-tighter">HISTORY</span>
+          <span className="text-[9px] font-black uppercase">HISTORY</span>
         </button>
       </footer>
     </div>
