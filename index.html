@@ -4,14 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Shorten - Smart Link Tool</title>
+    <title>Magic Link - Smart Link Tool</title>
     
     <!-- PWA & Mobile Optimization -->
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#020617" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Shorten" />
+    <meta name="apple-mobile-web-app-title" content="Magic Link" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10061/10061825.png" />
     <meta name="mobile-web-app-capable" content="yes" />
 
@@ -37,6 +37,40 @@
         border-radius: 10px;
       }
       
+      /* Custom Tooltip Engine */
+      [data-tooltip] {
+        position: relative;
+      }
+      [data-tooltip]::before {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: 135%;
+        left: 50%;
+        transform: translateX(-50%) translateY(8px);
+        padding: 6px 12px;
+        background: rgba(30, 41, 59, 0.95); /* slate-800 */
+        backdrop-filter: blur(8px);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        border-radius: 8px;
+        border: 1px solid rgba(16, 185, 129, 0.3); /* emerald edge */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 100;
+        pointer-events: none;
+      }
+      [data-tooltip]:hover::before {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+      }
+
       /* Custom Animations */
       @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
@@ -56,6 +90,16 @@
         70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
         100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
       }
+      @keyframes shake {
+        10%, 90% { transform: translate3d(-1px, 0, 0); }
+        20%, 80% { transform: translate3d(2px, 0, 0); }
+        30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+        40%, 60% { transform: translate3d(4px, 0, 0); }
+      }
+      @keyframes errorIn {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
 
       .animate-view-generate {
         animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -68,6 +112,12 @@
       }
       .animate-glow {
         animation: glowPulse 2s infinite;
+      }
+      .animate-shake {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      }
+      .animate-error {
+        animation: errorIn 0.3s ease-out forwards;
       }
 
       /* Prevent text selection on UI elements */

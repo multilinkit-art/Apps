@@ -1,11 +1,8 @@
 {
-  "name": "Shortener",
-  "short_name": "Shorten",
+  "name": "Magic Link",
+  "short_name": "Magic Link",
   "description": "Standalone smart link shortener with AI analysis for Android and iOS.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ],
+  "requestFramePermissions": [],
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",

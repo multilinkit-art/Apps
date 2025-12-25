@@ -17,6 +17,7 @@ export interface ShortenedLink {
   summary: string;
   provider: LinkProvider;
   createdAt: number;
+  expiresAt?: number; // Optional now, since we are removing auto-expiration
 }
 
 export interface SmartSuggestion {
