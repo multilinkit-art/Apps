@@ -1,0 +1,106 @@
+
+<?xml version="1.0" encoding="utf-8"?>
+<ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#020617">
+
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="20dp"
+        android:background="#0F172A"
+        app:layout_topToTop="parent">
+        
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_scissors"
+            android:background="@drawable/bg_emerald_gradient"
+            android:padding="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Magic Link"
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginStart="12dp"/>
+    </LinearLayout>
+
+    <!-- Create View -->
+    <ScrollView
+        android:id="@+id/createContainer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_topToBottom="@id/header"
+        app:layout_bottomToTop="@id/bottomNav">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LONG URL"
+                android:textColor="#64748B"
+                android:textSize="12sp"
+                android:textStyle="bold"/>
+
+            <EditText
+                android:id="@+id/inputUrl"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:background="@drawable/bg_input"
+                android:hint="https://..."
+                android:textColor="#FFFFFF"
+                android:padding="16dp"
+                android:layout_marginTop="8dp"/>
+
+            <Button
+                android:id="@+id/btnShorten"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="CREATE MAGIC LINK"
+                android:backgroundTint="#10B981"
+                android:textColor="#020617"
+                android:layout_marginTop="32dp"
+                android:textStyle="bold"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Nav -->
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:background="#0F172A"
+        android:orientation="horizontal"
+        app:layout_bottomToBottom="parent">
+        
+        <Button
+            android:id="@+id/navCreate"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="CREATE"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+
+        <Button
+            android:id="@+id/navHistory"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="HISTORY"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+    </LinearLayout>
+
+</ConstraintLayout>
